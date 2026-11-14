@@ -1,0 +1,29 @@
+{
+  "passed": true,
+  "reason": null,
+  "command": [
+    "stdbuf",
+    "-oL",
+    "-eL",
+    "./gpu_burn",
+    "-i",
+    "0",
+    "-m",
+    "90%",
+    "-stts",
+    "1",
+    "120"
+  ],
+  "requested_duration_s": 120,
+  "elapsed_s": 131.451,
+  "stop_threshold_c": 75,
+  "user_maximum_c": 78,
+  "sample_period_s": 0.25,
+  "samples": 525,
+  "max_core_temperature_c": 53,
+  "max_power_w": 154.659,
+  "max_memory_used_mib": 36876.3125,
+  "max_gpu_util_percent": 100,
+  "returncode": 0,
+  "gpu_burn_commit": "0d19c94dcb2e9b6858b7586a4c327674cd67113b"
+}

@@ -1,0 +1,167 @@
+{
+  "vfio_disable_idle_d3": "Y",
+  "gpu": {
+    "bdf": "0000:51:00.0",
+    "driver": "vfio-pci",
+    "link_speed": "5.0 GT/s PCIe",
+    "link_width": "4",
+    "power_state": "D0",
+    "config_registers": {
+      "0x10": "0xc6000000",
+      "0x14": "0xf800000c",
+      "0x18": "0xd2f",
+      "0x1c": "0xfc00000c",
+      "0x20": "0xd2f",
+      "0x24": "0x0"
+    },
+    "resizable_bars": [
+      {
+        "bar": 0,
+        "cap": "0x100",
+        "control": "0x460",
+        "current_bytes": 16777216
+      },
+      {
+        "bar": 1,
+        "cap": "0x400",
+        "control": "0x601",
+        "current_bytes": 67108864
+      },
+      {
+        "bar": 3,
+        "cap": "0x200",
+        "control": "0x503",
+        "current_bytes": 33554432
+      }
+    ],
+    "resources": [
+      {
+        "bar": 0,
+        "start": "0xc6000000",
+        "end": "0xc6ffffff",
+        "bytes": 16777216,
+        "flags": "0x40200"
+      },
+      {
+        "bar": 1,
+        "start": "0xd2ff8000000",
+        "end": "0xd2ffbffffff",
+        "bytes": 67108864,
+        "flags": "0x14220c"
+      },
+      {
+        "bar": 2,
+        "start": "0x0",
+        "end": "0x0",
+        "bytes": 0,
+        "flags": "0x0"
+      },
+      {
+        "bar": 3,
+        "start": "0xd2ffc000000",
+        "end": "0xd2ffdffffff",
+        "bytes": 33554432,
+        "flags": "0x14220c"
+      },
+      {
+        "bar": 4,
+        "start": "0x0",
+        "end": "0x0",
+        "bytes": 0,
+        "flags": "0x0"
+      },
+      {
+        "bar": 5,
+        "start": "0x0",
+        "end": "0x0",
+        "bytes": 0,
+        "flags": "0x0"
+      }
+    ],
+    "lspci": {
+      "exit_code": 0,
+      "stdout": "51:00.0 3D controller [0302]: NVIDIA Corporation GA100 [CMP 170HX] [10de:2082] (rev a1)\n\tSubsystem: NVIDIA Corporation GA100 [CMP 170HX] [10de:1557]\n\tPhysical Slot: 2\n\tControl: I/O+ Mem+ BusMaster+ SpecCycle- MemWINV- VGASnoop- ParErr+ Stepping- SERR+ FastB2B- DisINTx+\n\tStatus: Cap+ 66MHz- UDF- FastB2B- ParErr- DEVSEL=fast >TAbort- <TAbort- <MAbort- >SERR- <PERR- INTx-\n\tLatency: 0\n\tInterrupt: pin A routed to IRQ 319\n\tNUMA node: 0\n\tIOMMU group: 10\n\tRegion 0: Memory at c6000000 (32-bit, non-prefetchable) [size=16M]\n\tRegion 1: Memory at d2ff8000000 (64-bit, prefetchable) [size=64M]\n\tRegion 3: Memory at d2ffc000000 (64-bit, prefetchable) [size=32M]\n\tCapabilities: [60] Power Management version 3\n\t\tFlags: PMEClk- DSI- D1- D2- AuxCurrent=0mA PME(D0+,D1-,D2-,D3hot+,D3cold-)\n\t\tStatus: D0 NoSoftRst+ PME-Enable- DSel=0 DScale=0 PME-\n\tCapabilities: [68] MSI: Enable+ Count=1/1 Maskable- 64bit+\n\t\tAddress: 00000000fee00038  Data: 0000\n\tCapabilities: [78] Express (v2) Endpoint, MSI 00\n\t\tDevCap:\tMaxPayload 256 bytes, PhantFunc 0, Latency L0s unlimited, L1 <64us\n\t\t\tExtTag+ AttnBtn- AttnInd- PwrInd- RBE+ FLReset+ SlotPowerLimit 0W\n\t\tDevCtl:\tCorrErr+ NonFatalErr+ FatalErr+ UnsupReq+\n\t\t\tRlxdOrd+ ExtTag+ PhantFunc- AuxPwr- NoSnoop- FLReset-\n\t\t\tMaxPayload 256 bytes, MaxReadReq 4096 bytes\n\t\tDevSta:\tCorrErr- NonFatalErr- FatalErr- UnsupReq- AuxPwr- TransPend-\n\t\tLnkCap:\tPort #0, Speed 5GT/s, Width x16, ASPM not supported\n\t\t\tClockPM+ Surprise- LLActRep- BwNot- ASPMOptComp+\n\t\tLnkCtl:\tASPM Disabled; RCB 64 bytes, Disabled- CommClk+\n\t\t\tExtSynch- ClockPM+ AutWidDis- BWInt- AutBWInt-\n\t\tLnkSta:\tSpeed 5GT/s, Width x4 (downgraded)\n\t\t\tTrErr- Train- SlotClk+ DLActive- BWMgmt- ABWMgmt-\n\t\tDevCap2: Completion Timeout: Range AB, TimeoutDis+ NROPrPrP- LTR-\n\t\t\t 10BitTagComp+ 10BitTagReq+ OBFF Via message, ExtFmt- EETLPPrefix-\n\t\t\t EmergencyPowerReduction Not Supported, EmergencyPowerReductionInit-\n\t\t\t FRS- TPHComp- ExtTPHComp-\n\t\t\t AtomicOpsCap: 32bit- 64bit- 128bitCAS-\n\t\tDevCtl2: Completion Timeout: 50us to 50ms, TimeoutDis- LTR- 10BitTagReq+ OBFF Disabled,\n\t\t\t AtomicOpsCtl: ReqEn-\n\t\tLnkCap2: Supported Link Speeds: 2.5-5GT/s, Crosslink- Retimer- 2Retimers- DRS-\n\t\tLnkCtl2: Target Link Speed: 5GT/s, EnterCompliance- SpeedDis-\n\t\t\t Transmit Margin: Normal Operating Range, EnterModifiedCompliance- ComplianceSOS-\n\t\t\t Compliance Preset/De-emphasis: -6dB de-emphasis, 0dB preshoot\n\t\tLnkSta2: Current De-emphasis Level: -6dB, EqualizationComplete- EqualizationPhase1-\n\t\t\t EqualizationPhase2- EqualizationPhase3- LinkEqualizationRequest-\n\t\t\t Retimer- 2Retimers- CrosslinkRes: unsupported\n\tCapabilities: [100 v1] Virtual Channel\n\t\tCaps:\tLPEVC=0 RefClk=100ns PATEntryBits=1\n\t\tArb:\tFixed- WRR32- WRR64- WRR128-\n\t\tCtrl:\tArbSelect=Fixed\n\t\tStatus:\tInProgress-\n\t\tVC0:\tCaps:\tPATOffset=00 MaxTimeSlots=1 RejSnoopTrans-\n\t\t\tArb:\tFixed- WRR32- WRR64- WRR128- TWRR128- WRR256-\n\t\t\tCtrl:\tEnable+ ID=0 ArbSelect=Fixed TC/VC=ff\n\t\t\tStatus:\tNegoPending- InProgress-\n\tCapabilities: [258 v1] L1 PM Substates\n\t\tL1SubCap: PCI-PM_L1.2+ PCI-PM_L1.1+ ASPM_L1.2+ ASPM_L1.1+ L1_PM_Substates+\n\t\t\t  PortCommonModeRestoreTime=255us PortTPowerOnTime=10us\n\t\tL1SubCtl1: PCI-PM_L1.2- PCI-PM_L1.1- ASPM_L1.2- ASPM_L1.1-\n\t\t\t   T_CommonMode=0us LTR1.2_Threshold=0ns\n\t\tL1SubCtl2: T_PwrOn=10us\n\tCapabilities: [128 v1] Power Budgeting <?>\n\tCapabilities: [420 v2] Advanced Error Reporting\n\t\tUESta:\tDLP- SDES- TLP- FCP- CmpltTO- CmpltAbrt- UnxCmplt- RxOF- MalfTLP- ECRC- UnsupReq- ACSViol-\n\t\tUEMsk:\tDLP- SDES- TLP+ FCP- CmpltTO- CmpltAbrt- UnxCmplt- RxOF- MalfTLP- ECRC- UnsupReq+ ACSViol-\n\t\tUESvrt:\tDLP+ SDES+ TLP- FCP+ CmpltTO- CmpltAbrt- UnxCmplt- RxOF+ MalfTLP+ ECRC- UnsupReq- ACSViol-\n\t\tCESta:\tRxErr- BadTLP- BadDLLP- Rollover- Timeout- AdvNonFatalErr-\n\t\tCEMsk:\tRxErr- BadTLP- BadDLLP- Rollover- Timeout- AdvNonFatalErr-\n\t\tAERCap:\tFirst Error Pointer: 00, ECRCGenCap- ECRCGenEn- ECRCChkCap- ECRCChkEn-\n\t\t\tMultHdrRecCap- MultHdrRecEn- TLPPfxPres- HdrLogCap-\n\t\tHeaderLog: 00000000 00000000 00000000 00000000\n\tCapabilities: [600 v1] Vendor Specific Information: ID=0001 Rev=1 Len=024 <?>\n\tCapabilities: [900 v1] Null\n\tCapabilities: [bb0 v1] Physical Resizable BAR\n\t\tBAR 0: current size: 16MB, supported: 16MB\n\t\tBAR 1: current size: 64MB, supported: 64MB\n\t\tBAR 3: current size: 32MB, supported: 32MB\n\tKernel driver in use: vfio-pci\n\tKernel modules: nvidiafb, nouveau\n\n",
+      "stderr": ""
+    }
+  },
+  "parent": {
+    "bdf": "0000:50:02.0",
+    "driver": "pcieport",
+    "link_speed": "5.0 GT/s PCIe",
+    "link_width": "4",
+    "power_state": "D0",
+    "config_registers": {
+      "0x10": "0xfe000004",
+      "0x14": "0xd2f",
+      "0x18": "0x515150",
+      "0x1c": "0x200000f0",
+      "0x20": "0xc6f0c600",
+      "0x24": "0xfdf1f801"
+    },
+    "resizable_bars": [],
+    "resources": [
+      {
+        "bar": 0,
+        "start": "0xd2ffe000000",
+        "end": "0xd2ffe01ffff",
+        "bytes": 131072,
+        "flags": "0x140204"
+      },
+      {
+        "bar": 1,
+        "start": "0x0",
+        "end": "0x0",
+        "bytes": 0,
+        "flags": "0x0"
+      },
+      {
+        "bar": 2,
+        "start": "0x0",
+        "end": "0x0",
+        "bytes": 0,
+        "flags": "0x0"
+      },
+      {
+        "bar": 3,
+        "start": "0x0",
+        "end": "0x0",
+        "bytes": 0,
+        "flags": "0x0"
+      },
+      {
+        "bar": 4,
+        "start": "0x0",
+        "end": "0x0",
+        "bytes": 0,
+        "flags": "0x0"
+      },
+      {
+        "bar": 5,
+        "start": "0x0",
+        "end": "0x0",
+        "bytes": 0,
+        "flags": "0x0"
+      }
+    ],
+    "lspci": {
+      "exit_code": 0,
+      "stdout": "50:02.0 PCI bridge [0604]: Intel Corporation Device [8086:347a] (rev 03) (prog-if 00 [Normal decode])\n\tSubsystem: Intel Corporation Device [8086:0000]\n\tControl: I/O+ Mem+ BusMaster+ SpecCycle- MemWINV- VGASnoop- ParErr+ Stepping- SERR+ FastB2B- DisINTx+\n\tStatus: Cap+ 66MHz- UDF- FastB2B- ParErr- DEVSEL=fast >TAbort- <TAbort- <MAbort- >SERR- <PERR- INTx-\n\tLatency: 0, Cache Line Size: 64 bytes\n\tInterrupt: pin A routed to IRQ 129\n\tNUMA node: 0\n\tIOMMU group: 9\n\tRegion 0: Memory at d2ffe000000 (64-bit, non-prefetchable) [size=128K]\n\tBus: primary=50, secondary=51, subordinate=51, sec-latency=0\n\tI/O behind bridge: [disabled] [16-bit]\n\tMemory behind bridge: c6000000-c6ffffff [size=16M] [32-bit]\n\tPrefetchable memory behind bridge: d2ff8000000-d2ffdffffff [size=96M] [32-bit]\n\tSecondary status: 66MHz- FastB2B- ParErr- DEVSEL=fast >TAbort- <TAbort- <MAbort+ <SERR- <PERR-\n\tBridgeCtl: Parity+ SERR+ NoISA- VGA- VGA16- MAbort- >Reset- FastB2B-\n\t\tPriDiscTmr- SecDiscTmr- DiscTmrStat- DiscTmrSERREn-\n\tCapabilities: [40] Express (v2) Root Port (Slot+), MSI 00\n\t\tDevCap:\tMaxPayload 512 bytes, PhantFunc 0\n\t\t\tExtTag+ RBE+\n\t\tDevCtl:\tCorrErr+ NonFatalErr+ FatalErr+ UnsupReq-\n\t\t\tRlxdOrd- ExtTag+ PhantFunc- AuxPwr- NoSnoop-\n\t\t\tMaxPayload 256 bytes, MaxReadReq 4096 bytes\n\t\tDevSta:\tCorrErr- NonFatalErr- FatalErr- UnsupReq- AuxPwr- TransPend-\n\t\tLnkCap:\tPort #5, Speed 16GT/s, Width x16, ASPM not supported\n\t\t\tClockPM- Surprise+ LLActRep+ BwNot+ ASPMOptComp+\n\t\tLnkCtl:\tASPM Disabled; RCB 64 bytes, Disabled- CommClk+\n\t\t\tExtSynch- ClockPM- AutWidDis- BWInt- AutBWInt-\n\t\tLnkSta:\tSpeed 5GT/s, Width x4\n\t\t\tTrErr- Train- SlotClk+ DLActive+ BWMgmt+ ABWMgmt+\n\t\tSltCap:\tAttnBtn- PwrCtrl- MRL- AttnInd- PwrInd- HotPlug- Surprise-\n\t\t\tSlot #2, PowerLimit 0W; Interlock- NoCompl-\n\t\tSltCtl:\tEnable: AttnBtn- PwrFlt- MRL- PresDet- CmdCplt- HPIrq- LinkChg-\n\t\t\tControl: AttnInd Off, PwrInd Off, Power- Interlock-\n\t\tSltSta:\tStatus: AttnBtn- PowerFlt- MRL- CmdCplt- PresDet+ Interlock-\n\t\t\tChanged: MRL- PresDet- LinkState+\n\t\tRootCap: CRSVisible+\n\t\tRootCtl: ErrCorrectable+ ErrNon-Fatal+ ErrFatal+ PMEIntEna+ CRSVisible+\n\t\tRootSta: PME ReqID 0000, PMEStatus- PMEPending-\n\t\tDevCap2: Completion Timeout: Range ABC, TimeoutDis+ NROPrPrP+ LTR-\n\t\t\t 10BitTagComp+ 10BitTagReq- OBFF Not Supported, ExtFmt- EETLPPrefix-\n\t\t\t EmergencyPowerReduction Not Supported, EmergencyPowerReductionInit-\n\t\t\t FRS- LN System CLS Not Supported, TPHComp- ExtTPHComp- ARIFwd+\n\t\t\t AtomicOpsCap: Routing+ 32bit+ 64bit+ 128bitCAS+\n\t\tDevCtl2: Completion Timeout: 260ms to 900ms, TimeoutDis- LTR- 10BitTagReq- OBFF Disabled, ARIFwd-\n\t\t\t AtomicOpsCtl: ReqEn+ EgressBlck-\n\t\tLnkCap2: Supported Link Speeds: 2.5-16GT/s, Crosslink- Retimer+ 2Retimers+ DRS-\n\t\tLnkCtl2: Target Link Speed: 5GT/s, EnterCompliance- SpeedDis-\n\t\t\t Transmit Margin: Normal Operating Range, EnterModifiedCompliance- ComplianceSOS-\n\t\t\t Compliance Preset/De-emphasis: -6dB de-emphasis, 0dB preshoot\n\t\tLnkSta2: Current De-emphasis Level: -6dB, EqualizationComplete- EqualizationPhase1-\n\t\t\t EqualizationPhase2- EqualizationPhase3- LinkEqualizationRequest-\n\t\t\t Retimer- 2Retimers- CrosslinkRes: unsupported\n\tCapabilities: [80] Power Management version 3\n\t\tFlags: PMEClk- DSI- D1- D2- AuxCurrent=0mA PME(D0+,D1-,D2-,D3hot+,D3cold+)\n\t\tStatus: D0 NoSoftRst+ PME-Enable- DSel=0 DScale=0 PME-\n\tCapabilities: [88] Subsystem: Intel Corporation Device [8086:0000]\n\tCapabilities: [90] MSI: Enable+ Count=1/1 Maskable- 64bit-\n\t\tAddress: fee00018  Data: 0000\n\tCapabilities: [100 v1] Advanced Error Reporting\n\t\tUESta:\tDLP- SDES- TLP- FCP- CmpltTO- CmpltAbrt- UnxCmplt- RxOF- MalfTLP- ECRC- UnsupReq- ACSViol-\n\t\tUEMsk:\tDLP- SDES+ TLP- FCP- CmpltTO- CmpltAbrt- UnxCmplt- RxOF- MalfTLP- ECRC- UnsupReq+ ACSViol-\n\t\tUESvrt:\tDLP+ SDES- TLP- FCP+ CmpltTO- CmpltAbrt- UnxCmplt- RxOF+ MalfTLP+ ECRC- UnsupReq- ACSViol-\n\t\tCESta:\tRxErr- BadTLP- BadDLLP- Rollover- Timeout- AdvNonFatalErr-\n\t\tCEMsk:\tRxErr- BadTLP- BadDLLP- Rollover- Timeout- AdvNonFatalErr-\n\t\tAERCap:\tFirst Error Pointer: 00, ECRCGenCap+ ECRCGenEn- ECRCChkCap+ ECRCChkEn-\n\t\t\tMultHdrRecCap- MultHdrRecEn- TLPPfxPres- HdrLogCap+\n\t\tHeaderLog: 4a000001 51000004 fd040000 00000000\n\t\tRootCmd: CERptEn- NFERptEn- FERptEn-\n\t\tRootSta: CERcvd- MultCERcvd- UERcvd- MultUERcvd-\n\t\t\t FirstFatal- NonFatalMsg- FatalMsg- IntMsg 0\n\t\tErrorSrc: ERR_COR: 0000 ERR_FATAL/NONFATAL: 0000\n\tCapabilities: [148 v1] Access Control Services\n\t\tACSCap:\tSrcValid+ TransBlk+ ReqRedir+ CmpltRedir+ UpstreamFwd+ EgressCtrl- DirectTrans-\n\t\tACSCtl:\tSrcValid+ TransBlk- ReqRedir+ CmpltRedir+ UpstreamFwd+ EgressCtrl- DirectTrans-\n\tCapabilities: [180 v1] Vendor Specific Information: ID=0003 Rev=0 Len=00a <?>\n\tCapabilities: [190 v1] Downstream Port Containment\n\t\tDpcCap:\tINT Msg #0, RPExt+ PoisonedTLP+ SwTrigger+ RP PIO Log 4, DL_ActiveErr+\n\t\tDpcCtl:\tTrigger:1 Cmpl- INT- ErrCor+ PoisonedTLP- SwTrigger- DL_ActiveErr-\n\t\tDpcSta:\tTrigger- Reason:00 INT- RPBusy- TriggerExt:00 RP PIO ErrPtr:1f\n\t\tSource:\t0000\n\tCapabilities: [200 v1] Secondary PCI Express\n\t\tLnkCtl3: LnkEquIntrruptEn- PerformEqu-\n\t\tLaneErrStat: 0\n\tCapabilities: [400 v1] Data Link Feature <?>\n\tCapabilities: [410 v1] Physical Layer 16.0 GT/s <?>\n\tCapabilities: [450 v1] Lane Margining at the Receiver <?>\n\tKernel driver in use: pcieport\n\n",
+      "stderr": ""
+    }
+  },
+  "watcher": {
+    "exit_code": 0,
+    "stdout": "Result=success\nExecMainStatus=0\nActiveState=inactive\nUnitFileState=enabled\n",
+    "stderr": ""
+  },
+  "watcher_log_tail": "Verified single 2082: 51:00.0 -> physical parent 50:02.0, vfio-pci\n# 0000:51:00.0 via parent 0000:50:02.0: watching\n# 0000:51:00.0 initial LnkSta=1041\nT+0.000 0000:51:00.0 LnkCap ffffffff -> 00456101\nT+43.135 0000:51:00.0 LnkCap 00456101 -> 00456102\nT+43.135 0000:51:00.0 flip detected (speed nibble 2) -> retrain via 0000:50:02.0\nT+43.136 0000:51:00.0 trained at Gen2; retiring watcher for this card\n# all cards reached Gen2; exiting\n# 0000:51:00.0 final LnkSta=1042 (GEN2+)",
+  "checks": {
+    "vfio_bound": true,
+    "idle_d3_disabled": true,
+    "gpu_gen2_x4": true,
+    "parent_gen2_x4": true,
+    "bar1_resource_64mib": true,
+    "bar1_config_matches_resource": true,
+    "bar1_rebar_64mib": true
+  }
+}

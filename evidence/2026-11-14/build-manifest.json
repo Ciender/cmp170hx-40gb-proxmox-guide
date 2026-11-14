@@ -1,0 +1,56 @@
+{
+  "source_repository": "https://github.com/Johnnydaboy/cmpunlocker",
+  "branch": "homelab-dual-cmp170hx",
+  "commit": "658110d5d1f15f7174d18f57caad4cab7d04593a",
+  "driver_version": "610.43.02",
+  "profile": "10gb",
+  "kernel": "6.1.0-51-amd64",
+  "nvidia_source_archive_sha256": "62fbbe29527e30be32cb38b30dfad2e94db1ca87f77a58090e563c7669857e60",
+  "active_patch_concatenation_sha256": "427cf017ee3bf1f9d5eaf4b893a3bea268789f76812b8fc2639de91d216eafb3",
+  "active_patches": [
+    "sec2-postbl-plm-ss-cfg.patch",
+    "late-pma.patch",
+    "bar0-pramin-clamp.patch",
+    "ce-scrub-workarounds.patch",
+    "persistent-sw-state.patch",
+    "pcie-gen2.patch",
+    "name-string.patch"
+  ],
+  "modules": [
+    {
+      "file": "nvidia-drm.ko",
+      "sha256": "e0cdd936ccf2bcfe2704c0c7978f9f0a18632395a0fb2afbddb6604656bca1f7",
+      "build_id": "4aa48823ec5aca81e2c7c806b8daf5c0b1286883",
+      "version": "610.43.02",
+      "vermagic": "6.1.0-51-amd64 SMP preempt mod_unload modversions"
+    },
+    {
+      "file": "nvidia-modeset.ko",
+      "sha256": "41119f5e90231c463ca27d6582ae4a15850e4e312756cfda5b37a6780285e7ac",
+      "build_id": "02e00fb4552fc0ee4dde2ada829a011b6aa6b8e3",
+      "version": "610.43.02",
+      "vermagic": "6.1.0-51-amd64 SMP preempt mod_unload modversions"
+    },
+    {
+      "file": "nvidia-peermem.ko",
+      "sha256": "65d8bc6396f32626b0a4fa21653e47f7d1e4dfe8b3d868c407d5f9efe159a3d7",
+      "build_id": "c23ba9b91b46a38dc7fc4674b48b20d200bb9d92",
+      "version": "610.43.02",
+      "vermagic": "6.1.0-51-amd64 SMP preempt mod_unload modversions"
+    },
+    {
+      "file": "nvidia-uvm.ko",
+      "sha256": "f43aaa95441249b48a687368801808381efe943e68dcdd115d3991c7ce65ac53",
+      "build_id": "b6febce7b066c9a7659fb1fca0d29e04db9eaa7e",
+      "version": "610.43.02",
+      "vermagic": "6.1.0-51-amd64 SMP preempt mod_unload modversions"
+    },
+    {
+      "file": "nvidia.ko",
+      "sha256": "e72edc956c867814ab1379b8f7bcc876101ae4abaa60aff6cd0c354661a12f82",
+      "build_id": "9cd455a800b99662e649abc4ed52189b1136b1f7",
+      "version": "610.43.02",
+      "vermagic": "6.1.0-51-amd64 SMP preempt mod_unload modversions"
+    }
+  ]
+}

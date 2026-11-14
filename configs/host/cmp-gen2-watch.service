@@ -1,0 +1,18 @@
+# SPDX-License-Identifier: Apache-2.0
+# Based on Johnnydaboy/170hx-pve-gen2-controller; adds the tested topology precheck.
+[Unit]
+Description=CMP 170HX VFIO Gen2 advertisement-window watcher
+DefaultDependencies=no
+After=systemd-udevd.service
+Before=pve-guests.service
+ConditionPathExists=/usr/local/sbin/cmp-gen2-watch
+
+[Service]
+Type=simple
+ExecStartPre=/usr/local/libexec/cmp170hx-verify-topology
+ExecStart=/usr/local/sbin/cmp-gen2-watch --interval-us 1000 --duration-ms 300000 --target 2
+StandardOutput=append:/var/log/cmp-gen2-watch.log
+StandardError=append:/var/log/cmp-gen2-watch.log
+
+[Install]
+WantedBy=sysinit.target

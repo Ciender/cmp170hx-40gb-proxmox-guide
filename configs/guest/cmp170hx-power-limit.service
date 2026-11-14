@@ -1,0 +1,16 @@
+[Unit]
+Description=Set this CMP 170HX GPU power limit to 150 W
+Requires=nvidia-persistenced.service
+After=nvidia-persistenced.service
+ConditionPathExists=/usr/bin/nvidia-smi
+
+[Service]
+EnvironmentFile=/etc/cmp170hx/power.env
+Type=oneshot
+ExecStartPre=/usr/sbin/modprobe nvidia
+ExecStart=/usr/local/sbin/cmp170hx-power-limit
+RemainAfterExit=yes
+TimeoutStartSec=180
+
+[Install]
+WantedBy=multi-user.target

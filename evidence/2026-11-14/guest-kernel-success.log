@@ -1,0 +1,11 @@
+Nov 14 21:52:44 guest kernel: NVRM: GPU0 _kgspCreateSignatureMemdesc: SEC2_DEBUG: saved stock signature (4096 bytes)
+Nov 14 21:52:44 guest kernel: NVRM: GPU0 _kgspBootGspRm: SEC2_DEBUG: saved WPR2 lo=0x1ffffe00 hi=0x00000000
+Nov 14 21:52:44 guest kernel: NVRM: GPU0 _kgspBootGspRm: SEC2_DEBUG: POST-WRITE SS0=0x88888888 SS1=0x00000008 CFG1=0x02669000 LMR=0x0000028a (devId=0x2082)
+Nov 14 21:52:46 guest kernel: NVRM: GPU0 _kgspBootGspRm: SEC2_DEBUG: WPR meta updated fbSize=0x0000000a00000000 wprStart=0x00000009f7600000 wprEnd=0x00000009fff00000 sigSize=4096 (WPR2 lo=0x1ffffe00 hi=0x00000000)
+Nov 14 21:52:47 guest kernel: NVRM: GPU0 kgspInitRm_IMPL: SEC2_DEBUG: static-info BEFORE: fb_length=0xa00000000 numRegions=5
+Nov 14 21:52:47 guest kernel: NVRM: GPU0 kgspInitRm_IMPL: SEC2_DEBUG: last region[4] base=0x9f7500000 limit=0x9ffffffff reserved=0x8b00000
+Nov 14 21:52:47 guest kernel: NVRM: GPU0 kgspInitRm_IMPL: SEC2_DEBUG: static-info AFTER: fb_length=0xa00000000 last_limit=0x9ffffffff
+Nov 14 21:52:47 guest kernel: NVRM: GPU0 gpuGetNameString_FWCLIENT: SEC2_DEBUG: name string overridden to 'NVIDIA CMP 170HX' (devId=0x2082)
+Nov 14 21:52:47 guest kernel: NVRM: GPU0 memmgrSec2DebugLateExtendHighPmaRegion: SEC2_DEBUG_LATE_PMA: candidate=6 base=0x9f7500000 limit=0x9ffffffff left reserved (backs WPR2)
+Nov 14 21:52:47 guest kernel: NVRM: GPU0 RmInitAdapter: SEC2_DEBUG: late PMA extension status=0x0
+Nov 14 21:56:46 guest kernel: NVRM: GPU0 gpuGetNameString_FWCLIENT: SEC2_DEBUG: name string overridden to 'NVIDIA CMP 170HX' (devId=0x2082)

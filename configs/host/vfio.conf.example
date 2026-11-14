@@ -1,0 +1,2 @@
+# Merge into the existing /etc/modprobe.d/vfio.conf; preserve other device IDs.
+options vfio-pci ids=10de:2082

@@ -1,0 +1,12 @@
+# Relevant excerpt from the validated configuration, not a complete VM config.
+# GPU host BDF in this case: 0000:51:00.0; guest BDF: 0000:02:00.0.
+# Existing hostpci0, disk, network, EFI disk, boot order, CPU count etc. are omitted.
+# Merge with the existing args line; do not add a second args key.
+bios: ovmf
+machine: q35
+cpu: host,phys-bits=host
+memory: 32000
+balloon: 0
+hostpci1: 0000:51:00,pcie=1
+args: -global q35-pcihost.pci-hole64-size=512G -fw_cfg name=opt/ovmf/X-PciMmio64Mb,string=262144
+onboot: 1

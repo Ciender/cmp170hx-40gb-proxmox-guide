@@ -1,0 +1,21 @@
+name: Validate documentation and evidence
+
+on:
+  push:
+  pull_request:
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  validate:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - name: Validate published evidence and local Markdown links
+        run: python3 tools/verify_evidence.py
+      - name: Check Python syntax without executing GPU tools
+        run: python3 -m compileall -q scripts tools
+      - name: Compile the vendored watcher without running it
+        run: cc -O2 -Wall -Wextra -o /tmp/cmp-gen2-watch third_party/cmp-gen2-watch/cmp-gen2-watch.c

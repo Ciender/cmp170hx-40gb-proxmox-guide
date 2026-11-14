@@ -1,0 +1,4 @@
+# Add these entries to /etc/initramfs-tools/modules without replacing other entries.
+vfio
+vfio_iommu_type1
+vfio_pci

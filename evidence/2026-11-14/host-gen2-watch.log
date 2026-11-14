@@ -1,0 +1,9 @@
+Verified single 2082: 51:00.0 -> physical parent 50:02.0, vfio-pci
+# 0000:51:00.0 via parent 0000:50:02.0: watching
+# 0000:51:00.0 initial LnkSta=1041
+T+0.000 0000:51:00.0 LnkCap ffffffff -> 00456101
+T+43.135 0000:51:00.0 LnkCap 00456101 -> 00456102
+T+43.135 0000:51:00.0 flip detected (speed nibble 2) -> retrain via 0000:50:02.0
+T+43.136 0000:51:00.0 trained at Gen2; retiring watcher for this card
+# all cards reached Gen2; exiting
+# 0000:51:00.0 final LnkSta=1042 (GEN2+)

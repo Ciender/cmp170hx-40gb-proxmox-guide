@@ -1,0 +1,15 @@
+__pycache__/
+*.py[cod]
+.venv/
+.DS_Store
+build/
+dist/
+.build/
+*.o
+*.ko
+*.fatbin
+*.deb
+*.run
+*.tar.gz
+# Keep checked-in evidence; new runtime results belong outside this repository.
+runtime-results/

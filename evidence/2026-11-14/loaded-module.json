@@ -1,0 +1,10 @@
+{
+  "loaded_build_id": "9cd455a800b99662e649abc4ed52189b1136b1f7",
+  "installed_build_id": "9cd455a800b99662e649abc4ed52189b1136b1f7",
+  "match": true,
+  "installed_path": "/lib/modules/6.1.0-51-amd64/updates/cmpunlocker/nvidia.ko",
+  "installed_sha256": "e72edc956c867814ab1379b8f7bcc876101ae4abaa60aff6cd0c354661a12f82",
+  "loaded_version": "610.43.02",
+  "loaded_srcversion": "972DE016C0EF23585858FE9",
+  "gpu_accessed": false
+}
