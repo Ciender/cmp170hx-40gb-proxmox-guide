@@ -1,112 +1,114 @@
-# CMP 170HX 10GB → 40GB：Proxmox VFIO 成功复现记录
+[![English](assets/lang-en-active.svg)](README.md) [![简体中文](assets/lang-zh.svg)](README.zh-CN.md)
 
-仓库：[Ciender/cmp170hx-40gb-proxmox-guide](https://github.com/Ciender/cmp170hx-40gb-proxmox-guide)。
+# CMP 170HX 10GB → 40GB: A Successful Proxmox VFIO Reproduction
 
-在 **Proxmox VE 8.4.1 → Debian 12 虚拟机** 的 PCIe 直通环境中，使用 Johnnydaboy 的 `homelab-dual-cmp170hx` 分支，将单张 **10de:2082、原始 10GB 的 CMP 170HX** 启动为 **40960 MiB 显存、PCIe Gen2 ×4、70 SM**，并在 **150W 功率限制**下通过 gpu-burn 短时测试。
+Repository: [Ciender/cmp170hx-40gb-proxmox-guide](https://github.com/Ciender/cmp170hx-40gb-proxmox-guide).
 
-本仓库记录这条已经成功的路线，包括作者的关键修复、固定源码版本、宿主机和虚拟机配置、构建方法、冷启动顺序，以及实际运行证据。解锁驱动来自上游，本文提供的是这张 10GB 卡在 PVE 下的复现与环境适配。
+A single **CMP 170HX with PCI ID `10de:2082` and a stock capacity of 10GB** was brought up with **40960 MiB of framebuffer memory, PCIe Gen2 ×4, and 70 SMs** inside a **Debian 12 VM on Proxmox VE 8.4.1**. The setup uses Johnnydaboy's `homelab-dual-cmp170hx` branch and passed a short gpu-burn test with a **150 W power limit**.
 
-## 实测结果
+This repository documents the successful path: the upstream fixes, pinned source versions, host and guest configuration, build procedure, cold power cycle, and measured results. The unlock implementation comes from upstream; this guide records its adaptation and verification on this particular 10GB card under PVE.
 
-验证日期：**2026-11-14**。
+## Measured results
 
-| 项目 | 实测结果 |
+Validation date: **2026-11-14**.
+
+| Item | Measured result |
 | --- | --- |
-| GPU | NVIDIA CMP 170HX，PCI ID `10de:2082` |
-| 原始容量 / 解锁后 NVML 容量 | 10GB / **40960 MiB** |
-| CUDA 可见总容量 | **40483.625 MiB**，与 NVML 的差额包含驱动和固件保留空间 |
-| CUDA 计算能力 / SM | **8.0 / 70 SM** |
-| 物理 PCIe 链路 | **Gen2 ×4，5GT/s**；PVE 的 GPU 及物理父端口均已核验 |
-| BAR1 | GPU 物理 ReBAR、PVE 资源、guest 资源均为 **64MiB** |
-| 请求 / 生效功率限制 | **150W / 150W** |
-| gpu-burn | 参数 120 秒，约 **35.31GiB** 分配，**0 错误，GPU 0: OK** |
-| 压测核心最高温度 | **53℃** |
-| 温度监控 | 约每 0.25 秒采样；**75℃提前停止**，本次要求核心不超过 78℃ |
-| 测试后日志 | 未发现 guest Xid、GSP/BAR2 初始化失败或内核 BUG/Oops；host 错误筛查为空 |
-| ECC / 额外 4 SM | ECC 报 `N/A`；没有启用额外 4 SM |
+| GPU | NVIDIA CMP 170HX, PCI ID `10de:2082` |
+| Stock capacity / unlocked NVML capacity | 10GB / **40960 MiB** |
+| CUDA-visible total capacity | **40483.625 MiB**; the difference from NVML includes driver and firmware reservations |
+| CUDA compute capability / SM count | **8.0 / 70 SMs** |
+| Physical PCIe link | **Gen2 ×4, 5 GT/s**, verified at both the GPU and its physical parent on PVE |
+| BAR1 | **64 MiB** in the GPU's physical ReBAR state, PVE resources, and guest resources |
+| Requested / enforced power limit | **150 W / 150 W** |
+| gpu-burn | 120-second argument, about **35.31 GiB** allocated, **0 errors, GPU 0: OK** |
+| Maximum GPU core temperature | **53°C** |
+| Temperature monitoring | Approximately every 0.25 seconds; **stop early at 75°C**, with a required core-temperature ceiling of 78°C |
+| Post-test logs | No guest Xid, GSP/BAR2 initialization failure, or kernel BUG/Oops found; host error screening was empty |
+| ECC / additional 4 SMs | ECC reported `N/A`; the additional 4 SMs were not enabled |
 
-本次是单卡、单次冷启动和 120 秒 gpu-burn 的验证；尚未做长时间稳定性测试，也没有逐地址覆盖全部 40GB 的独立显存测试。gpu-burn 的实际分配量、NVML 总占用量和 CUDA 总容量分别记录，不能互相替代。
+This validates one card, one cold boot, and a 120-second gpu-burn run. It does not establish long-duration stability or provide an independent address-by-address test of the entire 40GB. gpu-burn's allocation, NVML's total memory usage, and CUDA's total capacity are recorded separately because they describe different quantities.
 
-![本次压力测试的温度、功耗与显存占用](assets/gpu-burn-telemetry.png)
+![GPU core temperature, power draw, and memory usage during the test](assets/gpu-burn-telemetry.png)
 
-图由本次 [525 个监控样本](evidence/2026-11-14/temperature.csv)生成。完整结果见 [验证说明](docs/VALIDATION.zh-CN.md)。
+The plot comes from the [525 recorded telemetry samples](evidence/2026-11-14/temperature.csv). See the [validation report](docs/VALIDATION.md) for the complete evidence index and scope.
 
-## 目录
+## Contents
 
-- [成功路线及作者修复](#成功路线及作者修复)
-- [固定版本和硬件环境](#固定版本和硬件环境)
-- [复现前记录设备拓扑](#复现前记录设备拓扑)
-- [PVE 宿主机准备](#pve-宿主机准备)
-- [虚拟机配置](#虚拟机配置)
-- [Debian 虚拟机内构建和安装](#debian-虚拟机内构建和安装)
-- [完整冷启动](#完整冷启动)
-- [启动后按顺序验收](#启动后按顺序验收)
-- [带温度保护的 gpu-burn](#带温度保护的-gpu-burn)
-- [后续维护](#后续维护)
-- [本仓库内容与发布](#本仓库内容与发布)
+- [The successful path and upstream fixes](#the-successful-path-and-upstream-fixes)
+- [Pinned versions and hardware](#pinned-versions-and-hardware)
+- [Record the PCI topology first](#record-the-pci-topology-first)
+- [Prepare the PVE host](#prepare-the-pve-host)
+- [Configure the VM](#configure-the-vm)
+- [Build and install inside the Debian guest](#build-and-install-inside-the-debian-guest)
+- [Perform a full cold power cycle](#perform-a-full-cold-power-cycle)
+- [Verify the boot in order](#verify-the-boot-in-order)
+- [Run gpu-burn with temperature protection](#run-gpu-burn-with-temperature-protection)
+- [Ongoing maintenance](#ongoing-maintenance)
+- [Repository contents and maintenance](#repository-contents-and-maintenance)
 
-## 成功路线及作者修复
+## The successful path and upstream fixes
 
-上游通用 README 保留了完整 BAR1 等功能介绍，而该分支的 [Proxmox 专用文档](https://github.com/Johnnydaboy/cmpunlocker/blob/658110d5d1f15f7174d18f57caad4cab7d04593a/docs/proxmox-dual-cmp170hx.md)明确采用更窄的 VFIO 路径。这里按照专用文档和实际 `driver/build.sh` 的默认补丁集合操作。
+The upstream general README still describes features such as full BAR1. The branch's [dedicated Proxmox guide](https://github.com/Johnnydaboy/cmpunlocker/blob/658110d5d1f15f7174d18f57caad4cab7d04593a/docs/proxmox-dual-cmp170hx.md) specifies a narrower VFIO configuration. This reproduction follows that guide and the actual default patch list in `driver/build.sh`.
 
 ```mermaid
 flowchart TD
-    A[上电：GPU 由 PVE 的 vfio-pci 接管] --> B[PVE watcher 先于虚拟机启动]
-    B --> C[guest 加载固定版本的七补丁驱动]
-    C --> D[SEC2 写入计算配置和 10GB 卡的 40GB 几何]
-    D --> E[恢复原厂签名长度与 WPR2 边界，完成 GSP 启动]
-    D --> F[GPU 短暂公布 Gen2 能力]
-    F --> G[PVE watcher 重训真实物理父端口]
-    G --> H[Gen2 成功后 watcher 退出]
-    E --> I[NVML / CUDA 可用，设置 persistence 与 150W]
+    A[Power on: PVE vfio-pci owns the GPU] --> B[Host watcher starts before the VM]
+    B --> C[Guest loads the pinned seven-patch driver]
+    C --> D[SEC2 writes compute configuration and 40GB geometry for the 10GB card]
+    D --> E[Restore stock signature length and WPR2 bounds, then boot GSP]
+    D --> F[GPU briefly advertises Gen2 capability]
+    F --> G[PVE watcher retrains the physical parent port]
+    G --> H[Watcher retires the card after Gen2 succeeds]
+    E --> I[NVML and CUDA work; enable persistence and the 150 W limit]
     H --> I
-    I --> J[检查日志，再运行有温度保护的 gpu-burn]
+    I --> J[Check logs, then run temperature-monitored gpu-burn]
 ```
 
-**1. 保持 VFIO 的 BAR1 映射一致。** QEMU 在虚拟机创建时建立 guest BAR 窗口。该分支默认不应用 `bar1-resize-unlock.patch`，避免 guest 驱动通过 GPU 寄存器改变物理 BAR1 后，硬件实际窗口与 QEMU/VFIO 的既有映射发生分歧。本次 40GB 显存启动和计算测试成功时，BAR1 始终是 64MiB；显存容量不要求等量的 BAR1 窗口。
+**1. Keep BAR1 consistent with VFIO mappings.** QEMU establishes the guest BAR aperture when the VM is created. This branch leaves `bar1-resize-unlock.patch` out of the default build, avoiding a physical BAR1 resize through GPU registers that would disagree with existing QEMU/VFIO mappings. BAR1 remained 64 MiB throughout this successful 40GB boot and compute test. Framebuffer capacity does not require an equally large BAR1 aperture.
 
-**2. 正确处理 GSP 签名、WPR 元数据与 WPR2。** 作者在固定提交中保留同一个签名内存描述符，恢复原厂签名内容，并把元数据中的签名长度恢复为真实长度。本次日志是 `sigSize=4096`，而不是把 `0xf800` 的 payload 缓冲大小当成签名长度。同时，SEC2 写入结束后恢复保存的 WPR2 硬件边界，再刷新相关元数据。
+**2. Restore GSP signature length, WPR metadata, and WPR2 state correctly.** The pinned fix preserves the same signature memory descriptor, restores the original signature bytes, and sets the metadata length back to the actual signature length. The measured log reports `sigSize=4096`, rather than treating the `0xf800` payload buffer size as the signature length. Saved WPR2 hardware bounds are also restored after the SEC2 writes, with the relevant metadata flushed.
 
-**3. 精简 VFIO 下的初始化路径。** CMP 卡不采用放松锁的并行 GSP 初始化；默认补丁集合排除 `booter-verify.patch` 和 guest 侧 `pcie-gen2-probe-retrain.patch`。`pcie-gen2.patch` 中与 Gen2 无关的 `FEAT_OVR_ECC_PLM`、地址 `0x00823800` 写入被移除。本次没有重新加入 ECC 配方。
+**3. Use the VFIO initialization path.** The CMP cards retain initialization locking instead of using relaxed parallel GSP initialization. The default patch list excludes `booter-verify.patch` and the guest-side `pcie-gen2-probe-retrain.patch`. The unrelated `FEAT_OVR_ECC_PLM` write at `0x00823800` was removed from `pcie-gen2.patch`. This reproduction did not add an ECC sequence back in.
 
-**4. 由 PVE 重训物理链路。** guest 里的 Q35 桥与 PVE 的真实 PCIe 父端口属于不同层。作者提供的 host watcher 以 1kHz 观察物理 GPU 的能力变化，抓住 GSP 初始化期间短暂的 Gen2 公布窗口，设置真实父端口的目标速率并重训；达到 Gen2 后停止处理该卡。本次 watcher 的相对时间 `T+43.135` 捕捉窗口，`T+43.136` 已训练到 Gen2。
+**4. Retrain the physical link from PVE.** The guest's Q35 bridge and the host's real PCIe parent port are different layers. The upstream host watcher polls the physical GPU at a nominal 1 kHz, catches its brief Gen2 advertisement window during GSP initialization, sets the physical parent's target speed, and retrains the link. It retires the card once Gen2 is reached. In this run, the watcher caught the window at relative time `T+43.135` and reported Gen2 at `T+43.136`.
 
-**5. 保留 WPR2 对应的高端显存区。** 分支包含上游 `f51da03` 的修复：不把高端保留区重新注册给 PMA 分配器。本次 `0x9f7500000–0x9ffffffff` 区域仍保留，因为它承载 WPR2 相关固件空间。这项修复来自原上游及其贡献者，不能全部归为 Johnny 的新增工作。
+**5. Keep the high memory region reserved for WPR2.** The branch includes upstream fix `f51da03`, which stops re-registering the high reserved region with the PMA allocator. Here, `0x9f7500000–0x9ffffffff` remained reserved because it backs WPR2-related firmware storage. This fix comes from the original upstream project and its contributors; it should not all be attributed to Johnny.
 
-关键代码差异、逐项来源和本次能证明的范围，见 [源码修复说明](docs/SOURCE-ANALYSIS.zh-CN.md)。
+See the [source analysis](docs/SOURCE-ANALYSIS.md) for the code changes, attribution, and the limits of what this run establishes.
 
-## 固定版本和硬件环境
+## Pinned versions and hardware
 
-### 源码版本
+### Source versions
 
-| 用途 | 仓库 / 分支 | 本次提交 |
+| Purpose | Repository / branch | Pinned revision |
 | --- | --- | --- |
-| guest 解锁驱动、host watcher C 源码 | [Johnnydaboy/cmpunlocker](https://github.com/Johnnydaboy/cmpunlocker/tree/658110d5d1f15f7174d18f57caad4cab7d04593a)，`homelab-dual-cmp170hx` | `658110d5d1f15f7174d18f57caad4cab7d04593a` |
-| 配套 PVE 部署文档和 watcher unit 来源 | [Johnnydaboy/170hx-pve-gen2-controller](https://github.com/Johnnydaboy/170hx-pve-gen2-controller/tree/9ba9da505f64d2c1a56703edc9516f42712ec7d9)，同名分支 | `9ba9da505f64d2c1a56703edc9516f42712ec7d9` |
-| NVIDIA 驱动基础源码 | [NVIDIA/open-gpu-kernel-modules](https://github.com/NVIDIA/open-gpu-kernel-modules/tree/610.43.02) | tag `610.43.02` |
-| 压力测试 | [wilicc/gpu-burn](https://github.com/wilicc/gpu-burn/tree/0d19c94dcb2e9b6858b7586a4c327674cd67113b) | `0d19c94dcb2e9b6858b7586a4c327674cd67113b` |
+| Guest unlock driver and host watcher C source | [Johnnydaboy/cmpunlocker](https://github.com/Johnnydaboy/cmpunlocker/tree/658110d5d1f15f7174d18f57caad4cab7d04593a), `homelab-dual-cmp170hx` | `658110d5d1f15f7174d18f57caad4cab7d04593a` |
+| Companion PVE deployment guide and watcher unit | [Johnnydaboy/170hx-pve-gen2-controller](https://github.com/Johnnydaboy/170hx-pve-gen2-controller/tree/9ba9da505f64d2c1a56703edc9516f42712ec7d9), same branch name | `9ba9da505f64d2c1a56703edc9516f42712ec7d9` |
+| NVIDIA base driver source | [NVIDIA/open-gpu-kernel-modules](https://github.com/NVIDIA/open-gpu-kernel-modules/tree/610.43.02) | Tag `610.43.02` |
+| Stress test | [wilicc/gpu-burn](https://github.com/wilicc/gpu-burn/tree/0d19c94dcb2e9b6858b7586a4c327674cd67113b) | `0d19c94dcb2e9b6858b7586a4c327674cd67113b` |
 
-### 本次机器
+### This machine
 
-| 项目 | 本次值 |
+| Component | Value in this reproduction |
 | --- | --- |
-| 服务器 / 主板 | XFUSION 2288H V6 / BC13MBSBH |
-| BIOS 版本 | 1.85，2025-07-21 |
-| PVE / host kernel / QEMU 包 | 8.4.1 / `6.8.12-11-pve` / `9.2.0-5` |
-| guest | Debian GNU/Linux 12，`6.1.0-51-amd64` |
-| NVIDIA 内核模块、驱动库、GSP 固件 | `610.43.02`；Debian 包为 `610.43.02-1` |
-| gpu-burn 构建用 CUDA Toolkit | `13.3.1-1`，比较内核显式编译为 `sm_80` cubin |
-| host GPU / 真实父端口 | `0000:51:00.0` / `0000:50:02.0` |
-| guest GPU | `0000:02:00.0` |
-| VM | 110，Q35 + OVMF，CPU host，内存 32000MiB，balloon=0 |
+| Server / motherboard | XFUSION 2288H V6 / BC13MBSBH |
+| BIOS version | 1.85, 2025-07-21 |
+| PVE / host kernel / QEMU package | 8.4.1 / `6.8.12-11-pve` / `9.2.0-5` |
+| Guest | Debian GNU/Linux 12, `6.1.0-51-amd64` |
+| NVIDIA kernel modules, driver libraries, and GSP firmware | `610.43.02`; Debian package version `610.43.02-1` |
+| CUDA Toolkit used to build gpu-burn | `13.3.1-1`; the comparison kernel was explicitly built as an `sm_80` cubin |
+| Host GPU / physical parent | `0000:51:00.0` / `0000:50:02.0` |
+| Guest GPU | `0000:02:00.0` |
+| VM | 110, Q35 + OVMF, host CPU, 32000 MiB RAM, balloon=0 |
 
-作者专用文档验证的是 **双张 `20c2` 8GB 卡、每卡 64GB、Gen2 ×8、180W**。本次是 **单张 `2082` 10GB 卡、40GB、Gen2 ×4、150W**，没有照搬作者的双卡 inventory、设备地址或 180W 脚本。
+The author's dedicated guide validates **two `20c2` 8GB cards, 64GB per card, Gen2 ×8, and 180 W**. This reproduction uses **one `2082` 10GB card, 40GB, Gen2 ×4, and 150 W**. The author's dual-card inventory, PCI addresses, and 180 W helper were adapted accordingly.
 
-## 复现前记录设备拓扑
+## Record the PCI topology first
 
-下面命令按 root 执行，并在每个标题注明的机器运行。示例中的 BDF 和 VMID 是本次机器的值；迁移主板或插槽后必须重新识别。
+Run the following commands as root on the machine named in each section. The BDFs and VMID are values from this machine; discover them again after a motherboard or slot change.
 
-在 **PVE** 上记录：
+On **PVE**, record:
 
 ```bash
 lspci -Dnn | grep -i nvidia
@@ -117,33 +119,33 @@ qm config 110
 cat /proc/cmdline
 ```
 
-本次 GPU 的 sysfs 路径末尾为：
+The GPU's sysfs path ends with:
 
 ```text
 .../pci0000:50/0000:50:02.0/0000:51:00.0
 ```
 
-因此负责物理链路重训的是 PVE 的 `50:02.0`。guest 的 `02:00.0` 只用于 guest inventory 和驱动检查。
+Therefore, `50:02.0` on PVE owns the physical link retrain. The guest's `02:00.0` is used for its inventory and driver checks.
 
-## PVE 宿主机准备
+## Prepare the PVE host
 
-### 1. 先备份现有配置
+### 1. Back up the existing configuration
 
-保存 `/etc/default/grub`、`/etc/kernel/cmdline`（如果使用）、`/etc/modprobe.d/`、`/etc/modules`、`/etc/initramfs-tools/modules`、目标 VM 的配置，以及已有 watcher unit。保留原始驱动安装包和源码。
+Save `/etc/default/grub`, `/etc/kernel/cmdline` if used, `/etc/modprobe.d/`, `/etc/modules`, `/etc/initramfs-tools/modules`, the target VM configuration, and any existing watcher unit. Keep the original driver packages and source code.
 
-本次 PVE 已能完成 IOMMU 直通，最终成功路线没有改写 GRUB 或 BIOS。有效启动参数中已有：
+IOMMU passthrough was already working on this host. The final successful setup did not change GRUB or BIOS settings. The effective command line already included:
 
 ```text
 intel_iommu=on iommu=pt video=vesafb:off video=efifb:off initcall_blacklist=sysfb_init
 ```
 
-本次没有添加 `pci=nocrs` 或 `pci=realloc=off`。现有参数中的 framebuffer 设置属于本机原有配置，不能据此断言每台机器都必须相同。
+Neither `pci=nocrs` nor `pci=realloc=off` was added. The framebuffer arguments were existing settings on this machine; their presence does not establish that every system needs them.
 
-固件层应满足上游文档要求的 IOMMU 与 Above-4G decoding。本文实际核验了 IOMMU 分组和 4G 以上 BAR 地址；没有独立读取 BIOS 菜单开关。**本路线不依赖把 ReBAR 开到 64GiB。**
+Firmware should meet the upstream requirements for IOMMU and Above-4G decoding. This run verified IOMMU groups and BAR addresses above 4 GiB, without separately inspecting the BIOS menu switches. **This path does not depend on enabling a 64 GiB ReBAR aperture.**
 
-### 2. 让 vfio-pci 接管 GPU
+### 2. Bind the GPU to vfio-pci
 
-将下面内容与现有配置合并，保留其他直通设备原有的 ID：
+Merge the following into the existing configuration, preserving IDs for other passed-through devices:
 
 ```text
 # /etc/modprobe.d/vfio.conf
@@ -158,9 +160,9 @@ blacklist nvidia
 blacklist nvidiafb
 ```
 
-本机实际 `ids=` 还保留了其他显卡的两个 ID；与 170HX 无关的值不必复制。本次 host 没有安装 NVIDIA 驱动，GPU 计算驱动放在 guest。
+The actual host retained two other GPU IDs in `ids=`. Those unrelated IDs do not need to be copied. This host had no NVIDIA driver installed; the compute driver runs inside the guest.
 
-在 `/etc/initramfs-tools/modules` 中确认存在：
+Ensure `/etc/initramfs-tools/modules` includes:
 
 ```text
 vfio
@@ -168,21 +170,21 @@ vfio_iommu_type1
 vfio_pci
 ```
 
-本次 `6.8.12-11-pve` 不使用独立 `vfio_virqfd` 模块，旧配置中该条目被移除。更新正在使用的内核对应 initramfs：
+This `6.8.12-11-pve` setup does not use a separate `vfio_virqfd` module, so its obsolete entry was removed. Rebuild the initramfs for the running host kernel:
 
 ```bash
 update-initramfs -u -k "$(uname -r)"
 ```
 
-### 3. 安装作者原版 Gen2 watcher
+### 3. Install the original upstream Gen2 watcher
 
-本仓库的 `third_party/cmp-gen2-watch/cmp-gen2-watch.c` 是固定上游提交中的原文件，SHA256：
+`third_party/cmp-gen2-watch/cmp-gen2-watch.c` is the unmodified file from the pinned upstream revision. Its SHA256 is:
 
 ```text
 d39d2b76dfac1b63c8af9efe7857055c3f5d1873184f8b3eea1aaa7d0304710e
 ```
 
-假设本仓库放在 `/root/cmp170hx-40gb-proxmox-guide`，在 **PVE** 中执行：
+Assuming this repository is at `/root/cmp170hx-40gb-proxmox-guide`, run on **PVE**:
 
 ```bash
 cd /root/cmp170hx-40gb-proxmox-guide
@@ -197,15 +199,15 @@ systemctl daemon-reload
 systemctl enable cmp-gen2-watch.service
 ```
 
-本机额外增加的启动前检查只读拓扑：系统必须只有一张受支持 CMP，设备必须为 `2082`、`51:00.0 → 50:02.0`，且已经绑定 `vfio-pci`。它匹配的是本次机器；换地址后先修改 `scripts/cmp170hx-verify-topology.py` 中的检查值，不能直接绕过检查。
+The added pre-start check reads topology only: there must be exactly one supported CMP, it must be an `2082` at `51:00.0 → 50:02.0`, and it must already use `vfio-pci`. These checks match this machine. If addresses change, update `scripts/cmp170hx-verify-topology.py` before installation rather than bypassing the check.
 
-unit 在 `pve-guests.service` 之前启动，按 1ms 间隔轮询，最长五分钟。这里先 **enable**，待完整冷启动时自然运行。它会写真实 PCIe 配置空间，不能当作普通状态查询命令随时手工启动。
+The unit starts before `pve-guests.service`, polls every 1 ms, and runs for at most five minutes. **Enable** it during preparation and let the full cold boot start it. It writes real PCIe configuration space and should not be started casually as a status query.
 
-本次没有部署配套仓库中可选的 vsock 状态链路和 `vfio-linkd` 守护进程；完成 Gen2 时序的是上述独立 watcher。
+This reproduction used the standalone watcher for Gen2 timing. The companion repository's optional vsock status transport and `vfio-linkd` daemons were not deployed.
 
-## 虚拟机配置
+## Configure the VM
 
-本次 VM 的相关配置如下，完整模板见 [configs/host/vm110.conf.example](configs/host/vm110.conf.example)：
+The relevant settings are below; see [configs/host/vm110.conf.example](configs/host/vm110.conf.example) for the configuration excerpt:
 
 ```text
 bios: ovmf
@@ -218,47 +220,47 @@ args: -global q35-pcihost.pci-hole64-size=512G -fw_cfg name=opt/ovmf/X-PciMmio64
 onboot: 1
 ```
 
-`hostpci1` 是因为本机的 `hostpci0` 已用于另一个设备；只添加目标 GPU 对应条目，不覆盖其他设备。这里没有 `x-vga=1`，保留虚拟控制台用于排错。
+`hostpci1` is used because `hostpci0` was already assigned to another device. Add the target GPU entry without replacing other devices. The GPU entry has no `x-vga=1`; a virtual console remains available for troubleshooting.
 
-512GiB PCI hole 和 256GiB OVMF MMIO 窗口是本机成功时保留的既有设置，**没有测定它们的最小必要值**，不能把“本次值”写成“所有机器必须值”。已有 `args:` 时合并参数，不能再添加第二个同名键覆盖原配置。
+The 512 GiB PCI hole and 256 GiB OVMF MMIO window were existing settings retained for the successful boot. **Their minimum required sizes were not measured.** These case-specific values are not established universal requirements. Merge an existing `args:` line instead of adding a second key that replaces its contents.
 
-在 PVE 上让目标 VM 随 host 启动，进入 watcher 的五分钟窗口：
+Enable VM autostart on PVE so the guest starts within the watcher's five-minute window:
 
 ```bash
 qm set 110 --onboot 1
 ```
 
-guest 需要能加载自编译模块，上游要求关闭 Secure Boot。本次没有单独读取 host/guest Secure Boot EFI 变量；OVMF 配置中有无预置密钥也不能代替实际 Secure Boot 状态检查。
+The guest must allow custom kernel modules to load; upstream requires Secure Boot to be disabled. Host and guest Secure Boot EFI variables were not independently read in this run. The presence of pre-enrolled OVMF keys is not itself a measurement of the active Secure Boot state.
 
-## Debian 虚拟机内构建和安装
+## Build and install inside the Debian guest
 
-### 1. 固定库、固件与内核模块版本
+### 1. Match the libraries, firmware, and kernel module version
 
-在 **guest** 安装构建依赖：
+Install build dependencies inside the **guest**:
 
 ```bash
 apt-get update
 apt-get install -y build-essential git curl patch python3 libelf-dev binutils linux-headers-"$(uname -r)"
 ```
 
-上游 `driver/build.sh` 下载并构建内核模块，**不会替你安装匹配的用户态驱动库和 GSP 固件**。本次这些包来自 NVIDIA 的 Debian 12 CUDA 软件源，均固定为 `610.43.02-1`。完整已安装版本清单见 [userspace-packages.txt](evidence/2026-11-14/userspace-packages.txt)。
+Upstream `driver/build.sh` downloads and builds kernel modules. **It does not install matching userspace driver libraries or GSP firmware.** The packages in this reproduction came from NVIDIA's Debian 12 CUDA repository and were pinned to `610.43.02-1`. See the complete installed version list in [userspace-packages.txt](evidence/2026-11-14/userspace-packages.txt).
 
-对已经配置该软件源的 Debian 12 环境，可先模拟核对依赖：
+On Debian 12 with that package repository already configured, first simulate dependency resolution:
 
 ```bash
 apt-get -s install nvidia-driver-cuda=610.43.02-1 libcuda1=610.43.02-1 libnvidia-ml1=610.43.02-1 firmware-nvidia-gsp=610.43.02-1 nvidia-persistenced=610.43.02-1
 ```
 
-确认仓库仍提供这些版本、依赖不会混入另一分支后，再用相同包名和版本安装。不要把无版本的 `apt install nvidia-driver` 当成本记录中的构建步骤。本次最后使用手工安装的解锁模块，原厂 DKMS 内核模块包已移除；安装库时应检查包管理器是否重新引入 DKMS 模块，并在构建前解决模块覆盖问题。本文提供版本核对方法，不假定未来 APT 仓库仍保留旧包。
+Install those exact package versions only after confirming they remain available and the dependency plan does not mix driver branches. An unversioned `apt install nvidia-driver` is not the procedure used here. The final setup uses manually installed unlock modules with the stock DKMS kernel-module package removed. Check whether library installation reintroduces DKMS modules and resolve module replacement before building. This guide specifies the verified package versions without assuming a future APT repository will retain them.
 
 ```bash
 dpkg-query -W -f='${Package} ${Version}\n' firmware-nvidia-gsp libcuda1 libnvidia-ml1 nvidia-driver-cuda nvidia-persistenced
 dkms status
 ```
 
-本次保留了版本匹配的安装包，并对相关驱动包设置 hold，避免后续升级造成库与模块版本分歧。CUDA Toolkit 是 gpu-burn 的编译依赖，与这里的 NVIDIA 驱动包是不同组件。
+Matching packages were retained locally, and related driver packages were held to prevent library/module drift during upgrades. CUDA Toolkit, used to compile gpu-burn, is a separate component from these NVIDIA driver packages.
 
-### 2. 拉取固定分支和提交
+### 2. Check out the pinned branch and commit
 
 ```bash
 git clone --branch homelab-dual-cmp170hx --single-branch https://github.com/Johnnydaboy/cmpunlocker.git /root/cmpunlocker-vfio
@@ -268,9 +270,9 @@ git status --short
 cat driver/VERSION
 ```
 
-支持列表为 `610.57.04`、`610.43.03`、`610.43.02`，默认第一项并非本次驱动，因此必须显式设置 `CMPUNLOCKER_DRIVER_VERSION=610.43.02`。
+The supported list contains `610.57.04`, `610.43.03`, and `610.43.02`. The first entry is the default, so explicitly set `CMPUNLOCKER_DRIVER_VERSION=610.43.02` for this reproduction.
 
-### 3. 本次使用的七个默认补丁
+### 3. Use the seven default patches
 
 ```text
 sec2-postbl-plm-ss-cfg.patch
@@ -282,9 +284,9 @@ pcie-gen2.patch
 name-string.patch
 ```
 
-`CMPUNLOCKER_ENABLE_BAR1_RESIZE=0`。没有增加 `booter-verify`、guest probe retrain、额外 4 SM 或 ECC 配方，也没有向作者的驱动补丁中插入本地修改。
+Set `CMPUNLOCKER_ENABLE_BAR1_RESIZE=0`. This build did not add `booter-verify`, guest probe retraining, an additional 4 SMs, or an ECC sequence. The upstream driver patches were used without local modifications.
 
-### 4. 校验 NVIDIA 基础源码
+### 4. Verify the NVIDIA source archive
 
 ```bash
 install -d /root/cmpunlocker-build-610.43.02-10gb
@@ -292,11 +294,11 @@ curl -L --fail -o /root/cmpunlocker-build-610.43.02-10gb/open-gpu-kernel-modules
 echo '62fbbe29527e30be32cb38b30dfad2e94db1ca87f77a58090e563c7669857e60  /root/cmpunlocker-build-610.43.02-10gb/open-gpu-kernel-modules-610.43.02.tar.gz' | sha256sum -c -
 ```
 
-本次先离线完成补丁应用和编译检查，再由原版 `driver/build.sh` 复用同一构建树安装。下面命令把相同环境参数直接用于从源码构建，不要求读者手工伪造或复制构建 stamp。
+In this run, patch application and compilation were checked offline first. The original `driver/build.sh` then reused that same build tree for installation. The command below applies the same environment settings to a source build; readers do not need to fabricate or copy a build stamp.
 
-### 5. 使用 Debian 分离式 headers 构建
+### 5. Build with Debian's split kernel headers
 
-本次 Debian 的内核 source headers 与构建输出 headers 分别位于 `/lib/modules/<kernel>/source` 和 `/lib/modules/<kernel>/build`。使用 GNU make 命令行变量传递正确路径，保持上游脚本不变：
+On this Debian installation, the kernel source headers and output headers reside in `/lib/modules/<kernel>/source` and `/lib/modules/<kernel>/build`, respectively. Pass the correct paths through GNU make command-line variables, leaving the upstream script unchanged:
 
 ```bash
 cd /root/cmpunlocker-vfio
@@ -316,11 +318,11 @@ env \
   taskset -c 0-7 bash driver/build.sh
 ```
 
-`taskset -c 0-7` 是本次使用的八核编译限制；CPU 编号不适用时调整为本机允许的编号。最关键的安装选项是 `CMPUNLOCKER_SKIP_RELOAD=1`：安装模块和更新 initramfs 后直接退出，等待完整冷启动。
+`taskset -c 0-7` limits compilation to the eight CPUs used here; choose CPU IDs allowed on your machine. The essential installation option is `CMPUNLOCKER_SKIP_RELOAD=1`: install modules, update initramfs, and exit while waiting for a full cold power cycle.
 
-对于 `2082`，实际补丁代码根据 PCI ID 使用 `CFG1=0x02669000`、`LMR=0x28A` 和 `fbSize=0xA00000000`。inventory 同时明确记录这是一张 10GB、目标 40960MiB 的卡。
+For PCI ID `2082`, the patched runtime code selects `CFG1=0x02669000`, `LMR=0x28A`, and `fbSize=0xA00000000`. The inventory also explicitly records one 10GB card targeting 40960 MiB.
 
-安装后确认模块落点和元数据：
+After installation, check the module location and metadata:
 
 ```bash
 modinfo -n nvidia
@@ -330,20 +332,20 @@ cat "/lib/modules/${KVER}/updates/cmpunlocker/gpu_inventory"
 readelf -n "/lib/modules/${KVER}/updates/cmpunlocker/nvidia.ko"
 ```
 
-本次 `nvidia.ko` 的 GNU build ID 为 `9cd455a800b99662e649abc4ed52189b1136b1f7`，SHA256 为 `e72edc956c867814ab1379b8f7bcc876101ae4abaa60aff6cd0c354661a12f82`。这些值标识本次构建产物；不同编译环境的正确产物不一定具有相同二进制哈希。五模块记录见 [build-manifest.json](evidence/2026-11-14/build-manifest.json)。
+This run's `nvidia.ko` has GNU build ID `9cd455a800b99662e649abc4ed52189b1136b1f7` and SHA256 `e72edc956c867814ab1379b8f7bcc876101ae4abaa60aff6cd0c354661a12f82`. These identify this particular artifact; correct builds from a different compilation environment need not have identical binary hashes. All five modules are recorded in [build-manifest.json](evidence/2026-11-14/build-manifest.json).
 
-### 6. 保留 guest 选项，安装单卡 150W 服务
+### 6. Retain guest options and install the single-card 150 W service
 
-本次 guest 的 Gen2 registry options 为：
+The guest retained these Gen2 registry options:
 
 ```text
 # /etc/modprobe.d/cmp-pcie-gen2.conf
 options nvidia NVreg_RegistryDwords="RmForceEnableGen2=1;RMPcieLinkSpeed=0x1"
 ```
 
-把该配置与现有 nvidia 选项合并，避免多个文件互相覆盖同一个 registry 参数。此前 guest 中轮询或重训的 `gen2.service` / hammer 已停用，物理重训由 PVE watcher 负责。
+Merge this with existing NVIDIA options so multiple files do not overwrite the same registry parameter. The old guest polling/retraining `gen2.service` and hammer were disabled; the PVE watcher owns physical retraining.
 
-本仓库的 150W helper 按 UUID 定位单张卡，启用 persistence 后设置并两次核对 requested/enforced limit。发布副本只把本机 UUID 外置为配置项；逻辑沿用本次实测 helper。
+The 150 W helper identifies one card by UUID, enables persistence, sets the power limit, and verifies requested/enforced limits twice. The published copy externalizes the machine-specific UUID while retaining the helper logic used in this run.
 
 ```bash
 cd /root/cmp170hx-40gb-proxmox-guide
@@ -351,39 +353,39 @@ install -d /etc/cmp170hx
 install -m 0755 scripts/cmp170hx-power-limit.py /usr/local/sbin/cmp170hx-power-limit
 install -m 0644 configs/guest/cmp170hx-power-limit.service /etc/systemd/system/cmp170hx-power-limit.service
 install -m 0644 configs/guest/power.env.example /etc/cmp170hx/power.env
-# 编辑 power.env，将 CMP170HX_GPU_UUID 替换为事先记录的本卡 UUID。
+# Edit power.env and set CMP170HX_GPU_UUID to the card's previously recorded UUID.
 systemctl daemon-reload
 systemctl enable cmp170hx-power-limit.service
 update-initramfs -u -k "$(uname -r)"
 ```
 
-在准备阶段使用已记录的 UUID，不为取得 UUID 而反复请求已失败驱动初始化。不要安装作者示例中固定等待双卡并设置 180W 的 helper。
+Use a UUID recorded earlier during preparation. Do not repeatedly request initialization from an already failed driver just to obtain a UUID. The author's example helper waits for two cards and sets 180 W; this reproduction uses the single-card 150 W helper instead.
 
-## 完整冷启动
+## Perform a full cold power cycle
 
-配置完成后：
+After preparation:
 
-1. 正常关闭目标 guest。
-2. 正常关闭整个 PVE 宿主机。
-3. 断开所有 PSU 电源输入，至少等待 30 秒。
-4. 重新接电、开机，让 PVE watcher 先启动，VM 随后自动启动。
+1. Shut down the target guest normally.
+2. Shut down the entire PVE host normally.
+3. Disconnect every PSU power input and wait at least 30 seconds.
+4. Restore power and boot. Let the PVE watcher start first and the VM autostart afterward.
 
-这是上游专用部署文档要求的上电顺序。本次新上电后的实际检查也确认 GPU、PVE 和 guest 的 BAR1 均为 64MiB。只看到 guest boot ID 改变，不足以证明 GPU 的物理状态已经清除。
+This is the power sequence required by the upstream deployment guide. After power was restored, measurements confirmed 64 MiB BAR1 state at the GPU, PVE, and guest. A changed guest boot ID alone does not establish that physical GPU state has been cleared.
 
-## 启动后按顺序验收
+## Verify the boot in order
 
-### 1. guest：先保存首次初始化日志
+### 1. Guest: preserve the first initialization log
 
 ```bash
 journalctl -k -b --no-pager > /root/cmp170hx-current-boot.log
 grep -En 'RmInitAdapter failed|MMUTest.*returned garbage|Cannot initialize GSP firmware|Booter failed with non-zero error code: 0x(15|0?b)|NVRM: Xid|(^|[[:space:]])BUG:|(^|[[:space:]])Oops:' /root/cmp170hx-current-boot.log
 ```
 
-grep 返回 1 且无输出表示没有匹配到这些故障；有输出则先保留首次错误。`SEC2_DEBUG:` 本身是调试前缀，不能用裸 `BUG:` 子串将它误判为内核 BUG。上游说明 SEC2 利用过程中的 Booter 响应 `0x31` 是预期响应。
+An empty result with grep exit status 1 means none of these failure patterns matched. If there is output, preserve the first error. `SEC2_DEBUG:` is a debug prefix; a bare `BUG:` substring check would misclassify it as a kernel BUG. Upstream documents Booter response `0x31` during the SEC2 exploit as expected.
 
-有初始化失败时不要继续循环执行 NVML 查询、压测或热卸载驱动。需要先处理首次错误，并通过下一次完整冷启动验证修改。
+If initialization has failed, stop further NVML query loops, stress tests, and live driver unloads. Diagnose the first error, then verify changes with another full cold power cycle.
 
-### 2. PVE：检查真实链路和 BAR
+### 2. PVE: check the physical link and BARs
 
 ```bash
 tail -100 /var/log/cmp-gen2-watch.log
@@ -395,7 +397,7 @@ cat /sys/bus/pci/devices/0000:50:02.0/current_link_speed
 cat /sys/module/vfio_pci/parameters/disable_idle_d3
 ```
 
-本次关键输出：
+Key output from this run:
 
 ```text
 T+43.135 0000:51:00.0 flip detected (speed nibble 2) -> retrain via 0000:50:02.0
@@ -404,30 +406,30 @@ T+43.136 0000:51:00.0 trained at Gen2; retiring watcher for this card
 # 0000:51:00.0 final LnkSta=1042 (GEN2+)
 ```
 
-`1042` 是本次端点的 link status 原始值，不是通用常数；本机链路宽度为 ×4。watcher 成功后变为 inactive 是正常结束，不能只用服务退出码判断 Gen2，仍需核对日志和实际 link speed/width。
+`1042` is this endpoint's raw link-status value, not a universal expected constant; this machine uses ×4. The watcher becoming inactive after success is normal. Its exit code alone does not establish Gen2: inspect the log and actual link speed/width.
 
-在 PVE 的 `lspci -vv` 中同时检查 `Region 1 ... [size=64M]` 和 `Physical Resizable BAR` 下 BAR1 的 `current size: 64MB`。本次物理 BAR1 为 `0xd2ff8000000–0xd2ffbffffff`，BAR3 从 `0xd2ffc000000` 开始，没有重叠。
+In PVE's `lspci -vv` output, check both `Region 1 ... [size=64M]` and BAR1 `current size: 64MB` under `Physical Resizable BAR`. This run's physical BAR1 spans `0xd2ff8000000–0xd2ffbffffff`; BAR3 starts at `0xd2ffc000000`, with no overlap.
 
-### 3. guest：核对驱动、显存和功率
+### 3. Guest: verify the driver, memory, and power limit
 
 ```bash
 systemctl status cmp170hx-power-limit.service --no-pager
 nvidia-smi --query-gpu=name,driver_version,memory.total,persistence_mode,power.limit,enforced.power.limit,pcie.link.gen.current,pcie.link.width.current --format=csv
 ```
 
-本次结果：
+Measured result:
 
 ```text
 NVIDIA CMP 170HX, 610.43.02, 40960 MiB, Enabled, 150.00 W, 150.00 W, 2, 4
 ```
 
-`modinfo` 描述的是磁盘上的模块。确认实际加载的是同一构建产物还应比较 `/sys/module/nvidia/notes/.note.gnu.build-id` 与模块 ELF 中的 GNU build ID，或使用本仓库 [check_loaded_module.py](scripts/check_loaded_module.py)。仅比较版本或 srcversion 不足以区分所有 RM 补丁变化。
+`modinfo` describes the module on disk. To verify that the loaded image is the same build, compare `/sys/module/nvidia/notes/.note.gnu.build-id` with the module ELF's GNU build ID, or use [check_loaded_module.py](scripts/check_loaded_module.py). Version or srcversion alone cannot distinguish every RM patch change.
 
-## 带温度保护的 gpu-burn
+## Run gpu-burn with temperature protection
 
-### 1. 构建本次固定版本
+### 1. Build the pinned revision
 
-在 **guest** 中，CUDA Toolkit 及头文件、cuBLAS 已安装，默认位置为 `/usr/local/cuda`。本次 Toolkit 为 13.3.1。构建比较内核时直接生成 `sm_80` cubin：
+Inside the **guest**, install CUDA Toolkit with its headers and cuBLAS; the default path here is `/usr/local/cuda`. This run used Toolkit 13.3.1. Build the comparison kernel directly as an `sm_80` cubin:
 
 ```bash
 git clone https://github.com/wilicc/gpu-burn.git /root/gpu-burn
@@ -436,16 +438,16 @@ git checkout --detach 0d19c94dcb2e9b6858b7586a4c327674cd67113b
 make -j8 COMPUTE= NVCCFLAGS='-gencode=arch=compute_80,code=sm_80' CUDAPATH=/usr/local/cuda
 ```
 
-### 2. 先确认监控，再运行负载
+### 2. Check monitoring before starting the load
 
-本次核心温度上限要求为 **78℃**，实际工具提前在 **75℃**停止。监控失败、样本超过 1 秒未更新、requested/enforced 不再为 150W、gpu-burn 报错或超过期限，也会终止整个负载进程组。轮询与终止属于软件保护，不能承诺在传感器更新延迟或硬件异常时绝对没有瞬时过冲。
+The required GPU core-temperature ceiling was **78°C**. The monitor stops early at **75°C**. It also terminates the entire load process group if monitoring fails, telemetry is more than one second old, requested/enforced limits cease to be 150 W, gpu-burn reports an error, or the run exceeds its deadline. Software polling and termination cannot guarantee the absence of a brief overshoot when sensor updates are delayed or hardware malfunctions.
 
-发布版 `scripts/guarded_gpu_burn.py` 将 UUID、gpu-burn 目录和输出目录改为环境变量，保留本次实测的 120 秒、90% 显存、75℃策略。不带 `--run` 时只做监控预检查。
+The published `scripts/guarded_gpu_burn.py` takes the UUID, gpu-burn directory, and output directory from environment variables. It retains the tested 120-second, 90%-memory, 75°C policy. Without `--run`, it performs monitoring preflight only.
 
 ```bash
 cd /root/cmp170hx-40gb-proxmox-guide
 export GPU_BURN_REPO=/root/gpu-burn
-export CMP170HX_GPU_UUID='GPU-替换为本卡实际UUID'
+export CMP170HX_GPU_UUID='GPU-REPLACE-WITH-YOUR-CARD-UUID'
 export CMP170HX_RESULT_DIR="/root/cmp170hx-burn-$(date +%Y%m%d-%H%M%S)"
 
 python3 scripts/guarded_gpu_burn.py
@@ -461,9 +463,9 @@ systemd-run --unit="cmp170hx-burn-$(date +%Y%m%d-%H%M%S)" \
   /usr/bin/python3 -u /root/cmp170hx-40gb-proxmox-guide/scripts/guarded_gpu_burn.py --run
 ```
 
-输出目录必须是新目录，防止覆盖上一次证据。测试期间不要重启功率服务、调高功率或显存频率，也不要并行运行其他 GPU 负载。
+Use a new output directory to preserve previous evidence. During the test, keep the power service and memory clocks unchanged and avoid concurrent GPU workloads.
 
-### 3. 本次验收数据
+### 3. Results from this run
 
 ```text
 Initialized device 0 with 40483 MB of memory
@@ -475,43 +477,45 @@ Tested 1 GPUs:
     GPU 0: OK
 ```
 
-gpu-burn 参数为 120 秒，含初始化和退出实际耗时 **131.451 秒**，完成报告累计 1112 次矩阵运算。核心温度最高 **53℃**，随后一次空闲查询为 **32℃**。显存 NVML 总占用峰值为 **36876.3125MiB**，与 gpu-burn 自身分配的 36161MiB 包含范围不同。
+The gpu-burn argument was 120 seconds. Including initialization and shutdown, elapsed wall time was **131.451 seconds**, with 1112 matrix multiplications reported in total. Core temperature peaked at **53°C**; a subsequent idle query reported **32°C**. Peak NVML total memory usage was **36876.3125 MiB**, which includes more than gpu-burn's own 36161 MiB allocation.
 
-所有样本中 requested/enforced limit 均为 150W；瞬时功率读数峰值为 **154.659W**。驱动功率限制是控制目标，不能解释为每一瞬时读数都硬截断在 150W。
+Requested and enforced limits remained 150 W in every sample. The highest instantaneous power reading was **154.659 W**. A driver power limit is a control target, not a hard cap on every instantaneous sample.
 
-## 后续维护
+## Ongoing maintenance
 
-本次模块手工安装在当前内核的 `updates/cmpunlocker` 下，并非由 DKMS 自动维护。更换 guest 内核后，需要针对新内核的 headers 重新构建、更新 initramfs，并按相同冷启动和验收顺序确认；本次二进制的 vermagic 不能直接用于其他内核。
+These modules are installed manually under the current kernel's `updates/cmpunlocker` directory; DKMS does not maintain them automatically. After changing the guest kernel, rebuild against its headers, update initramfs, and repeat the cold-boot acceptance sequence. This binary's vermagic does not make it suitable for another kernel.
 
-保持 NVIDIA 内核模块、用户态库和 GSP 固件版本匹配。本文只验证了表中固定组合；驱动或平台升级后的结果应另作记录，不能沿用本次成功标记。每次压测继续保留核心温度监控，本次要求上限 78℃，提前停止阈值 75℃。
+Keep NVIDIA kernel modules, userspace libraries, and GSP firmware on matching versions. This guide validates only the pinned combination above. Record results separately after a driver or platform change instead of carrying forward this run's success status. Continue monitoring core temperature during future tests: the ceiling for this setup is 78°C, with an early-stop threshold of 75°C.
 
-## 本仓库内容与发布
+## Repository contents and maintenance
 
 ```text
-README.md                          完整成功复现主线
-docs/SOURCE-ANALYSIS.zh-CN.md        修复机制、代码来源和贡献归属
-docs/VALIDATION.zh-CN.md             结果、证据对应关系、验证范围
-docs/PUBLISHING.zh-CN.md             克隆、检查与维护发布说明
-configs/host/                      PVE unit、VFIO 与 VM 配置示例
-configs/guest/                     单卡 150W unit 和配置示例
-scripts/                           拓扑检查、模块核验、功率与温度监控
-third_party/cmp-gen2-watch/          作者原版 watcher 与原许可证
-evidence/2026-11-14/                 本次成功日志、采样和构建清单
-assets/                            根据真实采样绘制的曲线
-tools/verify_evidence.py            离线核验文档所引用的关键实测数据
+README.md                          Complete English reproduction guide (default)
+README.zh-CN.md                    Complete Simplified Chinese guide
+docs/SOURCE-ANALYSIS.md             Fix mechanisms, source revisions, and attribution
+docs/VALIDATION.md                  Results, evidence index, and validation scope
+docs/PUBLISHING.md                  Clone, check, and maintain the repository
+docs/*.zh-CN.md                    Chinese versions of the supporting guides
+configs/host/                      PVE units, VFIO, and VM configuration examples
+configs/guest/                     Single-card 150 W unit and configuration example
+scripts/                          Topology, module, power, and temperature helpers
+third_party/cmp-gen2-watch/         Original upstream watcher and license
+evidence/2026-11-14/                Successful run logs, telemetry, and build manifest
+assets/                           Measured telemetry plot and language buttons
+tools/verify_evidence.py           Offline verification of the cited measurements
 ```
 
-日志中的 GPU UUID、hostname 等已做发布脱敏。没有包含 SSH 凭据、私有网络地址、聊天历史、完整系统备份或 NVIDIA 驱动二进制；PCI BDF 保留为解释本次拓扑所需的案例值。
+GPU UUIDs and hostnames have been redacted for publication. The repository contains no SSH credentials, private network addresses, chat history, full system backups, or NVIDIA driver binaries. PCI BDFs remain as case-specific values needed to explain this topology.
 
-在本仓库运行 `python3 tools/verify_evidence.py` 可离线核对证据。克隆与维护步骤见 [PUBLISHING.zh-CN.md](docs/PUBLISHING.zh-CN.md)。
+Run `python3 tools/verify_evidence.py` to check the evidence offline. See [PUBLISHING.md](docs/PUBLISHING.md) for cloning and maintenance instructions.
 
-## 来源与致谢
+## Sources and acknowledgments
 
-- [amoghmunikote/cmpunlocker](https://github.com/amoghmunikote/cmpunlocker)：原始解锁项目及上游贡献。
-- [Johnnydaboy/cmpunlocker](https://github.com/Johnnydaboy/cmpunlocker/tree/658110d5d1f15f7174d18f57caad4cab7d04593a)：本次使用的 VFIO 修复分支与专用部署文档。
-- [Johnnydaboy/170hx-pve-gen2-controller](https://github.com/Johnnydaboy/170hx-pve-gen2-controller/tree/9ba9da505f64d2c1a56703edc9516f42712ec7d9)：配套物理链路部署说明及 unit 来源。
-- [cmpunlocker PR #35](https://github.com/amoghmunikote/cmpunlocker/pull/35)：watcher 源文件注明的基础来源；本仓库没有把该 PR 的其他内容作为额外验证路线。
-- [NVIDIA/open-gpu-kernel-modules](https://github.com/NVIDIA/open-gpu-kernel-modules/tree/610.43.02)：基础驱动源码。
-- [wilicc/gpu-burn](https://github.com/wilicc/gpu-burn/tree/0d19c94dcb2e9b6858b7586a4c327674cd67113b)：压力测试工具。
+- [amoghmunikote/cmpunlocker](https://github.com/amoghmunikote/cmpunlocker): the original unlock project and upstream contributions.
+- [Johnnydaboy/cmpunlocker](https://github.com/Johnnydaboy/cmpunlocker/tree/658110d5d1f15f7174d18f57caad4cab7d04593a): the VFIO fix branch and dedicated deployment guide used here.
+- [Johnnydaboy/170hx-pve-gen2-controller](https://github.com/Johnnydaboy/170hx-pve-gen2-controller/tree/9ba9da505f64d2c1a56703edc9516f42712ec7d9): companion physical-link deployment guide and unit source.
+- [cmpunlocker PR #35](https://github.com/amoghmunikote/cmpunlocker/pull/35): the foundation credited by the watcher source; this guide does not claim to validate the PR's other changes as an additional path.
+- [NVIDIA/open-gpu-kernel-modules](https://github.com/NVIDIA/open-gpu-kernel-modules/tree/610.43.02): base driver source.
+- [wilicc/gpu-burn](https://github.com/wilicc/gpu-burn/tree/0d19c94dcb2e9b6858b7586a4c327674cd67113b): stress-test tool.
 
-本仓库原创文档和辅助脚本使用 MIT 许可证；第三方文件保留其自身许可证和来源，见 [NOTICE.md](NOTICE.md)。
+Original documentation and helper scripts use the MIT license. Third-party files retain their own licenses and attribution; see [NOTICE.md](NOTICE.md).

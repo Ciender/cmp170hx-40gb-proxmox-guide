@@ -1,6 +1,8 @@
+[![English](../assets/lang-en.svg)](SOURCE-ANALYSIS.md) [![简体中文](../assets/lang-zh-active.svg)](SOURCE-ANALYSIS.zh-CN.md)
+
 # 成功路线的源码修复与贡献归属
 
-本文对照本地固定源码说明“为什么采用这套组合”，并把源码事实、作者的说明和本次实测分开。完整操作步骤在 [README](../README.md)。
+本文对照本地固定源码说明“为什么采用这套组合”，并把源码事实、作者的说明和本次实测分开。完整操作步骤在 [README](../README.zh-CN.md)。
 
 ## 1. 固定到哪个提交
 

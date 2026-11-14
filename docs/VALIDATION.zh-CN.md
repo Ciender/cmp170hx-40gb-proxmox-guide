@@ -1,6 +1,8 @@
+[![English](../assets/lang-en.svg)](VALIDATION.md) [![简体中文](../assets/lang-zh-active.svg)](VALIDATION.zh-CN.md)
+
 # 本次成功结果与证据索引
 
-验证日期：2026-11-14。这里仅记录最后成功的固定分支、配置与运行结果。操作过程见 [README](../README.md)，机制和贡献归属见 [源码说明](SOURCE-ANALYSIS.zh-CN.md)。
+验证日期：2026-11-14。这里仅记录最后成功的固定分支、配置与运行结果。操作过程见 [README](../README.zh-CN.md)，机制和贡献归属见 [源码说明](SOURCE-ANALYSIS.zh-CN.md)。
 
 ## 验证顺序
 

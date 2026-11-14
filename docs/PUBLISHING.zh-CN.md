@@ -1,3 +1,5 @@
+[![English](../assets/lang-en.svg)](PUBLISHING.md) [![简体中文](../assets/lang-zh-active.svg)](PUBLISHING.zh-CN.md)
+
 # 仓库获取、检查与维护
 
 公开仓库：[Ciender/cmp170hx-40gb-proxmox-guide](https://github.com/Ciender/cmp170hx-40gb-proxmox-guide)。默认分支为 `main`。
@@ -41,4 +43,4 @@ git push origin main
 
 ## 4. 来源和许可证
 
-根目录 MIT 许可证用于原创文档与辅助脚本；原 watcher 保留 GPLv2，第三方 unit 保留 Apache-2.0 来源说明，见 [NOTICE](../NOTICE.md)。原作者的驱动修复及本次环境适配分别在 [源码说明](SOURCE-ANALYSIS.zh-CN.md)中列明。
+根目录 MIT 许可证用于原创文档与辅助脚本；原 watcher 保留 GPLv2，第三方 unit 保留 Apache-2.0 来源说明，见 [NOTICE](../NOTICE.zh-CN.md)。原作者的驱动修复及本次环境适配分别在 [源码说明](SOURCE-ANALYSIS.zh-CN.md)中列明。
